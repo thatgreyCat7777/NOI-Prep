@@ -1,49 +1,127 @@
 #include <iostream>
 #include <vector>
+#include <deque>
 
 using namespace std;
 
-class city
+typedef struct city
 {
-public:
-    bool hasEvent = false;
-    vector<int> paths;
-    city(bool hasEvent)
-    {
-        this->hasEvent = false;
-    }
-};
+    deque<int> neighbours;
+} city;
+
+bool IsItinerary(int startingCityIndex);
+void FindPath(int current, int parent);
+int cursor;
+int cityCount, eventCount;
+deque<pair<int,int>> PathIndex;
+vector<int> eventIndices;
+vector<bool> visitedCities;
+vector<city> cities;
+
 int main(void)
 {
     ios_base::sync_with_stdio(false);
     cin.tie(NULL);
 
-    int cityCount, eventCount;
     cin >> cityCount >> eventCount;
-    vector<int> eventIndices(eventCount);
-    vector<city> cities(cityCount);
-
+    cities.resize(cityCount);
+    visitedCities.resize(cityCount);
     for (int i = 0; i < cityCount - 1; i++)
     {
-        int path;
-        cin >> cities[i] >> path;
-        cities[i].paths.push_back(path);
+        int x, y;
+        cin >> x >> y;
+        x--, y--;
+        cities[x].neighbours.push_back(y);
+        cities[y].neighbours.push_back(x);
     }
     for (int i = 0; i < eventCount; i++)
     {
-        cin >> eventIndices[i];
+        int event;
+        cin >> event;
+        eventIndices.push_back(event - 1);
     }
-    // for each starting city
-    int previous;
+    FindPath(4, 4);
+    cout << PathIndex.size() << '\n';
+    for (int i = 0, len = PathIndex.size(); i < len; i++)
+    {
+        cout << PathIndex.at(i).first + 1 << ' ' << PathIndex.at(i).second + 1 << '\n';
+    }
     for (int i = 0; i < cityCount; i++)
     {
-        for (int j = 0; j < cities[i].paths.capacity(); j++)
+        //cout << "i: " << i << '\n';
+        if (IsItinerary(i))
         {
-            for (int k = cities[i].paths[j];; k = cities[k].paths[j])
-            {
-
-            }
+            cout << 1 << '\n';
+        }
+        else
+        {
+            cout << 0 << '\n';
         }
     }
     return 0;
+}
+bool IsItinerary(int startingCityIndex)
+{
+    cursor = 0;
+    PathIndex.clear();
+    fill(visitedCities.begin(), visitedCities.end(), false);
+    FindPath(startingCityIndex, startingCityIndex);
+    /*cout << PathIndex.size() << '\n';
+    for (int i = 0, len = PathIndex.size(); i < len; i++)
+    {
+        cout << PathIndex.at(i).first + 1 << ' ' << PathIndex.at(i).second + 1 << '\n';
+    }*/
+    for (int i = 0, len = PathIndex.size(); i < len;)
+    {
+        if (PathIndex[i].second != PathIndex[(i+1)%(eventCount-1)].second)
+        {
+            for (int j = cursor; j < eventCount; ++j)
+            {
+                if (PathIndex[i].first == eventIndices[j])
+                {
+                    ++cursor;
+                }
+            }
+            i++;
+        }
+        else
+        {
+            int counter = 0;
+            for (int j = cursor; j < eventCount; ++j)
+            {
+                if (PathIndex[i].first == eventIndices[j])
+                {
+                    ++counter;
+                }
+            }
+            for (int j = cursor; j < eventCount; ++j)
+            {
+                if (PathIndex[i+1].first == eventIndices[j])
+                {
+                    ++counter;
+                }
+            }
+            i += 2;
+            cursor += counter;
+        }
+    }
+    return cursor >= (eventCount - 1);
+}
+void FindPath(int current, int parent)
+{
+    visitedCities[current] = true;
+    for (int neighbour : cities[current].neighbours)
+    {
+        if (neighbour == parent)
+            continue;
+        if (!visitedCities[neighbour])
+        {
+            FindPath(neighbour, current);
+        }
+    }
+    //cout << current + 1 << ' ' << parent + 1 << '\n';
+    for (int i : eventIndices)
+        if (current == i)
+            PathIndex.push_front(pair(current, parent));
+
 }
